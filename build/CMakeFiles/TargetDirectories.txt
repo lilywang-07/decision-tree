@@ -1,5 +1,0 @@
-/Users/lilywang/projects/decision_tree/build/CMakeFiles/decision_tree.dir
-/Users/lilywang/projects/decision_tree/build/CMakeFiles/run_tests.dir
-/Users/lilywang/projects/decision_tree/build/CMakeFiles/test.dir
-/Users/lilywang/projects/decision_tree/build/CMakeFiles/edit_cache.dir
-/Users/lilywang/projects/decision_tree/build/CMakeFiles/rebuild_cache.dir

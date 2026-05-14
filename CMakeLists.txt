@@ -1,21 +1,27 @@
-cmake_minimum_required(VERSION 3.16)
-project(DecisionTree VERSION 0.1.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.20)
+project(tree-race-starter LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Main executable
-add_executable(decision_tree
-    src/main.cpp
-)
+find_package(benchmark REQUIRED)
+find_package(GTest REQUIRED)
 
-target_include_directories(decision_tree PRIVATE include)
+add_executable(tree_exe src/main.cpp src/csv.h)
+add_executable(tree_benchmark bench/tree_benchmark.cpp src/csv.h)
+add_executable(tree_tests tst/tree_tests.cpp src/csv.h)
 
-# Compiler warnings
-target_compile_options(decision_tree PRIVATE -Wall -Wextra -O2)
+foreach(target tree_exe tree_benchmark tree_tests)
+    target_include_directories(${target} PRIVATE src)
+    target_compile_definitions(${target} PRIVATE TREE_RACE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+endforeach()
 
-# Tests (optional but recommended)
+target_compile_options(tree_exe PRIVATE -O3 -DNDEBUG)
+target_compile_options(tree_benchmark PRIVATE -O3 -DNDEBUG)
+
+target_link_libraries(tree_benchmark PRIVATE benchmark::benchmark_main)
+target_link_libraries(tree_tests PRIVATE GTest::gtest)
+
 enable_testing()
-add_executable(run_tests tests/test_tree.cpp)
-target_include_directories(run_tests PRIVATE include)
-add_test(NAME TreeTests COMMAND run_tests)
+add_test(NAME tree_tests COMMAND tree_tests)
