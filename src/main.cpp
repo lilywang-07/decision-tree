@@ -1,4 +1,5 @@
 #include "csv.h"
+#include "tree.h"
 
 #include <filesystem>
 #include <iostream>
