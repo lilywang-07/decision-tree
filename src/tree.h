@@ -2,6 +2,10 @@
 #include <vector>
 #include <memory>
 
+// Shannon entropy (in bits) of a label vector.
+// Returns 0 for empty or pure (single-class) input.
+double entropy(const std::vector<int>& labels);
+
 class Tree {
  public:
   // Train the tree on rows + labels.
