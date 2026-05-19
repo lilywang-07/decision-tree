@@ -41,6 +41,20 @@ TEST(Entropy, TennisFullDataset) {
     EXPECT_NEAR(information_gain(tennis_rows, tennis_labels, 0), 0.247, 0.001);
 }
 
+TEST(InformationGain, ZeroGain) {
+    // If every row has the same feature value, the split changes nothing so gain = 0.
+    const std::vector<std::vector<int>> rows   = {{7},{7},{7},{7}};
+    const std::vector<int>              labels = {  0,  0,  1,  1};
+    EXPECT_NEAR(information_gain(rows, labels, 0), 0.0, 1e-9);
+}
+
+// Tree ------------------------------------------------------------------------
+
+TEST(Tree, Builds) {
+    Tree tree;
+    EXPECT_TRUE(true);
+}
+
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
