@@ -1,6 +1,17 @@
 #include "tree.h"
 #include <gtest/gtest.h>
 
+const std::vector<int> tennis_labels = {
+      0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0
+  };
+
+const std::vector<std::vector<int>> tennis_rows = {
+    {0,0,0,0}, {0,0,0,1}, {1,0,0,0}, {2,1,0,0},
+    {2,2,1,0}, {2,2,1,1}, {1,2,1,1}, {0,1,0,0},
+    {0,2,1,0}, {2,1,1,0}, {0,1,1,1}, {1,1,0,1},
+    {1,0,1,0}, {2,1,0,1}
+};
+
 TEST(Dataset, LoadsTennis) { EXPECT_EQ(2 + 2, 4); }
 
 TEST(Entropy, EmptyIsZero) { // handles empty input without crashing, and returns 0 entropy.
@@ -21,11 +32,13 @@ TEST(Entropy, FairCoinIsOneBit) {
 
 // handles the tennis dataset labels, and returns ~0.940 bits of entropy.
 TEST(Entropy, TennisFullDataset) {
-  // 9 "play" (1) + 5 "don't play" (0) out of 14 — the labels from tennis.csv.
-  const std::vector<int> tennis_labels = {
-      0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0
-  };
+  // 9 "play" (1) + 5 "don't play" (0) out of 14
   EXPECT_NEAR(entropy(tennis_labels), 0.940, 0.001);
+}
+
+ TEST(InformationGain, OutlookGain) {
+    // Textbook value for outlook (feature 0) on the full tennis set ≈ 0.247
+    EXPECT_NEAR(information_gain(tennis_rows, tennis_labels, 0), 0.247, 0.001);
 }
 
 int main(int argc, char** argv) {

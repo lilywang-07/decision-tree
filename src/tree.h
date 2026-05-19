@@ -6,6 +6,12 @@
 // Returns 0 for empty or pure (single-class) input.
 double entropy(const std::vector<int>& labels);
 
+// Information gain of splitting on a feature, given the rows, labels, and
+// feature index to split on.
+double information_gain(const std::vector<std::vector<int>>& rows,
+                        const std::vector<int>&              labels,
+                        int                                  feature_index);
+
 class Tree {
  public:
   // Train the tree on rows + labels.
