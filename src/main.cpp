@@ -5,25 +5,55 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 using Data = std::pair<std::vector<std::vector<int>>, std::vector<int>>;
 
-Data load_tennis_data() {
-  const auto path = std::filesystem::path{"datasets"} / "tennis.csv";
+// loads a given csv file and returns a pair of (rows, targets)
+Data load_csv_data(const std::string& filename) {
+  const auto path = std::filesystem::path{"datasets"} / filename;
+  
+  std::ifstream file(path.string());
+  if (!file.is_open()) {
+    throw std::runtime_error("Could not open file: " + path.string());
+  }
 
-  io::CSVReader<5> in(path.string());
-  int outlook = 0;
-  int temperature = 0;
-  int humidity = 0;
-  int wind = 0;
-  int play = 0;
+  // Read header row to determine column count
+  std::string header_line;
+  std::getline(file, header_line);
+  
+  std::stringstream header_ss(header_line);
+  std::string col;
+  int num_cols = 0;
+  while (std::getline(header_ss, col, ',')) {
+    num_cols++;
+  }
+
+  // Last column is the target, rest are features
+  int num_features = num_cols - 1;
 
   std::vector<std::vector<int>> row_data;
   std::vector<int> target_data;
 
-  while (in.read_row(outlook, temperature, humidity, wind, play)) {
-    row_data.push_back({outlook, temperature, humidity, wind});
-    target_data.push_back(play);
+  std::string line;
+  while (std::getline(file, line)) {
+    if (line.empty()) continue;
+
+    std::stringstream ss(line);
+    std::string val;
+    std::vector<int> row;
+
+    while (std::getline(ss, val, ',')) {
+      row.push_back(std::stoi(val));
+    }
+
+    if ((int)row.size() != num_cols) {
+      throw std::runtime_error("Row has unexpected number of columns");
+    }
+
+    row_data.push_back(std::vector<int>(row.begin(), row.begin() + num_features));
+    target_data.push_back(row.back());
   }
 
   return {std::move(row_data), std::move(target_data)};
@@ -65,8 +95,8 @@ void print_confusion_matrix(const std::vector<int>& truth,
 // Main ------------------------------------------------------------------
 
 int main() {
-  // loads tennis data
-  const auto [rows, targets] = load_tennis_data();
+  // loads data
+  const auto [rows, targets] = load_csv_data("zoo.csv");
   const int n_samples  = static_cast<int>(rows.size());
   std::cout << "\nLoaded rows/samples: " << n_samples
             << ", labels: " << targets.size() << '\n';

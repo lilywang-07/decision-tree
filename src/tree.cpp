@@ -54,6 +54,7 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
                   const std::vector<int>&              labels,
                   std::vector<int>                     features_left) {
   Node* node = new Node();
+  node->label = majority(labels); // default label
 
   // Base case 1: all labels are the same -> pure leaf.
   if (std::all_of(labels.begin(), labels.end(),
@@ -129,7 +130,7 @@ int Tree::predict(const std::vector<int>& row) const {
       auto it = cur->children.find(val);
       if (it == cur->children.end())
           // Unseen value at inference time — fall back to majority among known children
-          throw std::runtime_error("Unseen feature value during predict");
+          return cur->label;
       cur = it->second;
   }
   return cur->label;
