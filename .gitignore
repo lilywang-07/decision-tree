@@ -73,3 +73,5 @@ Testing/
 
 # Conan / CMake user-specific
 CMakeUserPresets.jsonPERFORMANCE.md
+
+PERFORMANCE.md

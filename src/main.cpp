@@ -7,6 +7,8 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <map>
+#include <set>
 
 using Data = std::pair<std::vector<std::vector<int>>, std::vector<int>>;
 
@@ -74,22 +76,31 @@ double accuracy(const std::vector<int>& truth, const std::vector<int>& pred) {
 // Actual 1    FN            TP
 void print_confusion_matrix(const std::vector<int>& truth,
                             const std::vector<int>& pred) {
-    int tp = 0, tn = 0, fp = 0, fn = 0;
-    for (int i = 0; i < static_cast<int>(truth.size()); ++i) {
-        if      (truth[i] == 1 && pred[i] == 1) ++tp;
-        else if (truth[i] == 0 && pred[i] == 0) ++tn;
-        else if (truth[i] == 0 && pred[i] == 1) ++fp;
-        else                                     ++fn;
-    }
+    // Find all unique classes
+    std::set<int> class_set(truth.begin(), truth.end());
+    std::vector<int> classes(class_set.begin(), class_set.end());
+    int n = classes.size();
 
-    std::cout << "\nConfusion Matrix (actual rows × predicted cols):\n";
-    std::cout << "              Pred 0   Pred 1\n";
-    std::cout << "  Actual 0:     " << std::setw(3) << tn
-              << "      " << std::setw(3) << fp << "\n";
-    std::cout << "  Actual 1:     " << std::setw(3) << fn
-              << "      " << std::setw(3) << tp << "\n";
-    std::cout << "\n  TP=" << tp << "  TN=" << tn
-              << "  FP=" << fp << "  FN=" << fn << "\n";
+    // Map class value to index
+    std::map<int, int> idx;
+    for (int i = 0; i < n; ++i) idx[classes[i]] = i;
+
+    // Build matrix
+    std::vector<std::vector<int>> mat(n, std::vector<int>(n, 0));
+    for (int i = 0; i < (int)truth.size(); ++i)
+        mat[idx[truth[i]]][idx[pred[i]]]++;
+
+    // Print
+    std::cout << "\nConfusion Matrix (actual rows x predicted cols):\n";
+    std::cout << "       ";
+    for (int c : classes) std::cout << std::setw(4) << c;
+    std::cout << "\n";
+    for (int i = 0; i < n; ++i) {
+        std::cout << "  [" << classes[i] << "]  ";
+        for (int j = 0; j < n; ++j)
+            std::cout << std::setw(4) << mat[i][j];
+        std::cout << "\n";
+    }
 }
 
 // Main ------------------------------------------------------------------
@@ -144,6 +155,13 @@ int main() {
 
   std::cout << "\n--- Test set ---";
   print_confusion_matrix(test_labels, test_preds);
+  int correct = 0;
+  for (int i = 0; i < (int)test_labels.size(); ++i)
+      correct += (test_labels[i] == test_preds[i]);
+
+  std::cout << "\nCorrect:   " << correct << " / " << test_labels.size() << "\n";
+  std::cout << "Incorrect: " << test_labels.size() - correct << " / " << test_labels.size() << "\n";
+  std::cout << "\n";
 
   return 0;
 }
