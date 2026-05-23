@@ -108,10 +108,29 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
 
 void Tree::fit(const std::vector<std::vector<int>>& rows,
                const std::vector<int>& labels) {
-  // TODO: implement ID3
+  delete root_;
+  root_ = nullptr;
+  if (rows.empty()) return;
+
+  // All feature indices: 0 … num_features-1
+  std::vector<int> all_features(rows[0].size());
+  for (int i = 0; i < static_cast<int>(all_features.size()); ++i)
+      all_features[i] = i;
+
+  root_ = build(rows, labels, all_features);
 }
 
 int Tree::predict(const std::vector<int>& row) const {
-  // TODO
-  return 0;
+  if (!root_) throw std::runtime_error("Tree::predict called before fit()");
+
+  const Node* cur = root_;
+  while (!cur->is_leaf) {
+      int val = row[cur->feature_idx];
+      auto it = cur->children.find(val);
+      if (it == cur->children.end())
+          // Unseen value at inference time — fall back to majority among known children
+          throw std::runtime_error("Unseen feature value during predict");
+      cur = it->second;
+  }
+  return cur->label;
 }
