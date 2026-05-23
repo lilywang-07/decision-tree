@@ -38,6 +38,11 @@ double information_gain(const std::vector<std::vector<int>>& rows,
     return entropy(labels) - weighted_h;
 }
 
+void Tree::prune(const std::vector<std::vector<int>>& val_rows,
+                 const std::vector<int>& val_labels) {
+    prune(root_, val_rows, val_labels);
+}
+
 // Tree ------------------------------------------------------------------------
 
 // returns the majority label among a vector of labels, with tie-breaking
@@ -134,4 +139,41 @@ int Tree::predict(const std::vector<int>& row) const {
       cur = it->second;
   }
   return cur->label;
+}
+
+double Tree::accuracy(const std::vector<std::vector<int>>& val_rows,
+                const std::vector<int>&              val_labels) {
+  int correct = 0;
+  for (int i = 0; i < static_cast<int>(val_rows.size()); ++i)
+    correct += (predict(val_rows[i]) == val_labels[i]);
+  return static_cast<double>(correct) / val_labels.size();
+}
+
+// walks the tree bottom-up, tries replacing each internal node with a leaf, and 
+// keeps the cut if validation accuracy doesn't drop.
+void Tree::prune(Node* node, const std::vector<std::vector<int>>& val_rows,
+           const std::vector<int>& val_labels){
+  if (node->is_leaf) return;
+
+  // recurse into children first
+  for (auto& [val, child] : node->children)
+    prune(child, val_rows, val_labels);
+
+  // current accuracy before pruning
+  double old_acc = accuracy(val_rows, val_labels);
+  
+  // try replacing this node with a leaf
+  int old_label = node->label;
+  bool old_is_leaf = node->is_leaf;
+  std::unordered_map<int, Node*> old_children = std::move(node->children);
+  node->is_leaf = true;
+  node->label = majority(val_labels);
+
+  // if accuracy dropped, revert the change
+  double new_acc = accuracy(val_rows, val_labels);
+  if (new_acc < old_acc) {
+    node->is_leaf = old_is_leaf;
+    node->label = old_label;
+    node->children = std::move(old_children);
+  }
 }

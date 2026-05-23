@@ -46,14 +46,25 @@ class Tree {
 
     // Predict labels for many rows.
     std::vector<int> predict(const std::vector<std::vector<int>>& rows) const;
+    
+    void prune(const std::vector<std::vector<int>>& val_rows,
+           const std::vector<int>& val_labels);
+
+    double accuracy(const std::vector<std::vector<int>>& val_rows,
+                    const std::vector<int>&              val_labels);
 
   private:
     Node* root_ = nullptr;
+    std::vector<int> train_labels_; // stored for pruning
 
     // Recursive ID3 builder
     Node* build(const std::vector<std::vector<int>>& rows,
                 const std::vector<int>&              labels,
                 std::vector<int>                     features_left);
+    
+    void prune(Node* node,
+               const std::vector<std::vector<int>>& val_rows,
+               const std::vector<int>& val_labels);
 
     // Majority-vote among labels (tie-break: smaller class wins).
     static int majority(const std::vector<int>& labels);

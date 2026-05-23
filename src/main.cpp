@@ -107,20 +107,24 @@ void print_confusion_matrix(const std::vector<int>& truth,
 
 int main() {
   // loads data
-  const auto [rows, targets] = load_csv_data("zoo.csv");
+  const auto [rows, targets] = load_csv_data("car_eval.csv");
   const int n_samples  = static_cast<int>(rows.size());
   std::cout << "\nLoaded rows/samples: " << n_samples
             << ", labels: " << targets.size() << '\n';
 
-  // train / test split — 70% train, 30% test
-  const int split = static_cast<int>(n_samples * 0.70 + 0.5);  // round
+  // train / test split — 60% train, 20% test, 20% validation
+  const int train_end = static_cast<int>(n_samples * 0.60 + 0.5);  // round
+  int val_end = static_cast<int>(n_samples * 0.80);
 
-  std::vector<std::vector<int>> train_rows (rows.begin(), rows.begin() + split);
-  std::vector<int> train_labels(targets.begin(), targets.begin() + split);
-  std::vector<std::vector<int>> test_rows (rows.begin() + split, rows.end());
-  std::vector<int> test_labels(targets.begin() + split, targets.end());
+  std::vector<std::vector<int>> train_rows (rows.begin(), rows.begin() + train_end);
+  std::vector<int> train_labels(targets.begin(), targets.begin() + train_end);
+  std::vector<std::vector<int>> val_rows   (rows.begin() + train_end, rows.begin() + val_end);
+  std::vector<int> val_labels (targets.begin() + train_end, targets.begin() + val_end);
+  std::vector<std::vector<int>> test_rows (rows.begin() + val_end,  rows.end());
+  std::vector<int> test_labels (targets.begin() + val_end, targets.end());
 
   std::cout << "Split: " << train_rows.size() << " train, "
+            << val_rows.size()   << " validation, "
             << test_rows.size()  << " test.\n";
 
   // fit, times how long it takes to build the tree
@@ -135,6 +139,9 @@ int main() {
   for (const auto& row : train_rows)
       train_preds.push_back(tree.predict(row));
   double train_acc = accuracy(train_labels, train_preds);
+
+  // prune the tree using the validation set
+  tree.prune(val_rows, val_labels);
 
   // evaluate on test set
   std::vector<int> test_preds;
