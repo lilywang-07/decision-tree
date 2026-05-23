@@ -62,6 +62,28 @@ TEST(Tree, FitAndPredict) {
     EXPECT_TRUE(result == 0 || result == 1);
 }
 
+TEST(Tree, PerfectTrainingAccuracy) {
+    // ID3 with no pruning must memorize every training row.
+    Tree tree;
+    tree.fit(tennis_rows, tennis_labels);
+
+    int correct = 0;
+    for (int i = 0; i < (int)tennis_rows.size(); ++i)
+        correct += (tree.predict(tennis_rows[i]) == tennis_labels[i]);
+
+    EXPECT_EQ(correct, (int)tennis_rows.size());
+}
+
+TEST(Tree, PredictKnownRows) {
+    Tree tree;
+    tree.fit(tennis_rows, tennis_labels);
+
+    // Row 0: outlook=0,temp=0,humidity=0,wind=0 → label 0 (don't play)
+    EXPECT_EQ(tree.predict({0, 0, 0, 0}), 0);
+    // Row 2: outlook=1,temp=0,humidity=0,wind=0 → label 1 (play)
+    EXPECT_EQ(tree.predict({1, 0, 0, 0}), 1);
+}
+
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
