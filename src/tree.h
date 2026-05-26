@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <iostream>
 
 // Shannon entropy (in bits) of a label vector.
 // Returns 0 for empty or pure (single-class) input.
@@ -12,6 +13,10 @@ double entropy(const std::vector<int>& labels);
 double information_gain(const std::vector<std::vector<int>>& rows,
                         const std::vector<int>&              labels,
                         int                                  feature_index);
+
+double split_info(const std::vector<std::vector<int>>& rows, int feature_index);
+double gain_ratio(const std::vector<std::vector<int>>& rows,
+                  const std::vector<int>& labels, int feature_index);
 
 struct Node {
     bool is_leaf    = false;
@@ -59,8 +64,9 @@ class Tree {
 
     // Recursive ID3 builder
     Node* build(const std::vector<std::vector<int>>& rows,
-                const std::vector<int>&              labels,
-                std::vector<int>                     features_left);
+                const std::vector<int>& labels,
+                std::vector<int> features_left,
+                int depth, int max_depth, int min_samples_split, int min_samples_leaf);
     
     void prune(Node* node,
                const std::vector<std::vector<int>>& val_rows,

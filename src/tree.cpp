@@ -43,6 +43,26 @@ void Tree::prune(const std::vector<std::vector<int>>& val_rows,
     prune(root_, val_rows, val_labels);
 }
 
+double split_info(const std::vector<std::vector<int>>& rows, int feature_index) {
+  std::unordered_map<int, int> counts;
+  for (const auto& row : rows) counts[row[feature_index]]++;
+
+  double si = 0.0;
+  const double n = static_cast<double>(rows.size());
+  for (const auto& [val, count] : counts) {
+      double p = count / n;
+      if (p > 0) si -= p * std::log2(p);
+  }
+  return si;
+}
+
+double gain_ratio(const std::vector<std::vector<int>>& rows,
+                  const std::vector<int>& labels, int feature_index) {
+  double si = split_info(rows, feature_index);
+  if (si == 0.0) return 0.0;  // avoid divide by zero
+  return information_gain(rows, labels, feature_index) / si;
+}
+
 // Tree ------------------------------------------------------------------------
 
 // returns the majority label among a vector of labels, with tie-breaking
@@ -56,8 +76,9 @@ int Tree::majority(const std::vector<int>& labels) {
 
 // Recursive ID3 builder
 Node* Tree::build(const std::vector<std::vector<int>>& rows,
-                  const std::vector<int>&              labels,
-                  std::vector<int>                     features_left) {
+                  const std::vector<int>& labels,
+                  std::vector<int> features_left, int depth,
+                  int max_depth, int min_samples_split, int min_samples_leaf) {
   Node* node = new Node();
   node->label = majority(labels); // default label
 
@@ -76,11 +97,24 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
       return node;
   }
 
+  // Base case 3: max depth reached
+  if (depth >= max_depth) {
+      node->is_leaf = true;
+      return node;
+  }
+
+  // Base case 4: not enough samples to split
+  if ((int)labels.size() < min_samples_split) {
+      node->is_leaf = true;
+      return node;
+  }
+
   // Pick the feature with the highest information gain
   int best_feat = features_left[0];
   double best_gain = -1.0;
   for (int f : features_left) {
-      double g = information_gain(rows, labels, f);
+      //double g = information_gain(rows, labels, f);
+      double g = gain_ratio(rows, labels, f);
       if (g > best_gain) { best_gain = g; best_feat = f; }
   }
   node->feature_idx = best_feat;
@@ -96,6 +130,15 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
   for (int i = 0; i < static_cast<int>(rows.size()); ++i)
       idx_by_val[rows[i][best_feat]].push_back(i);
 
+  // before recursing, check partitions aren't too small
+  bool any_too_small = false;
+  for (const auto& [val, indices] : idx_by_val)
+      if ((int)indices.size() < min_samples_leaf) { any_too_small = true; break; }
+  if (any_too_small) {
+      node->is_leaf = true;
+      return node;
+  }
+
   // Recurse on each partition.
   for (const auto& [val, indices] : idx_by_val) {
       std::vector<std::vector<int>> sub_rows;
@@ -106,7 +149,8 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
           sub_rows.push_back(rows[i]);
           sub_labels.push_back(labels[i]);
       }
-      node->children[val] = build(sub_rows, sub_labels, remaining);
+
+      node->children[val] = build(sub_rows, sub_labels, remaining, depth + 1, max_depth, min_samples_split, min_samples_leaf);
   }
 
   return node;
@@ -123,7 +167,7 @@ void Tree::fit(const std::vector<std::vector<int>>& rows,
   for (int i = 0; i < static_cast<int>(all_features.size()); ++i)
       all_features[i] = i;
 
-  root_ = build(rows, labels, all_features);
+  root_ = build(rows, labels, all_features, 0, 15, 3, 1);
 }
 
 int Tree::predict(const std::vector<int>& row) const {
@@ -167,7 +211,6 @@ void Tree::prune(Node* node, const std::vector<std::vector<int>>& val_rows,
   bool old_is_leaf = node->is_leaf;
   std::unordered_map<int, Node*> old_children = std::move(node->children);
   node->is_leaf = true;
-  node->label = majority(val_labels);
 
   // if accuracy dropped, revert the change
   double new_acc = accuracy(val_rows, val_labels);
