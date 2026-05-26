@@ -70,10 +70,6 @@ double accuracy(const std::vector<int>& truth, const std::vector<int>& pred) {
     return 100.0 * correct / static_cast<double>(truth.size());
 }
 
-// Binary confusion matrix (classes 0 and 1).
-//          Predicted 0   Predicted 1
-// Actual 0    TN            FP
-// Actual 1    FN            TP
 void print_confusion_matrix(const std::vector<int>& truth,
                             const std::vector<int>& pred) {
     // Find all unique classes
@@ -107,7 +103,7 @@ void print_confusion_matrix(const std::vector<int>& truth,
 
 int main() {
   // loads data
-  const auto [rows, targets] = load_csv_data("car_eval.csv");
+  const auto [rows, targets] = load_csv_data("mushroom_fixed.csv");
   const int n_samples  = static_cast<int>(rows.size());
   std::cout << "\nLoaded rows/samples: " << n_samples
             << ", labels: " << targets.size() << '\n';
@@ -130,7 +126,10 @@ int main() {
   // fit, times how long it takes to build the tree
   Tree tree;
   auto t0 = std::chrono::high_resolution_clock::now();
-  tree.fit(train_rows, train_labels);
+
+  // CHANGE THIS LINE to switch between information gain and gain ratio split criteria
+  // split criteria: 0 for information gain, 1 for gain ratio
+  tree.fit(train_rows, train_labels, 0);
   auto t1 = std::chrono::high_resolution_clock::now();
   double train_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
 

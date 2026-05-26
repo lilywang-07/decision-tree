@@ -14,10 +14,6 @@ double information_gain(const std::vector<std::vector<int>>& rows,
                         const std::vector<int>&              labels,
                         int                                  feature_index);
 
-double split_info(const std::vector<std::vector<int>>& rows, int feature_index);
-double gain_ratio(const std::vector<std::vector<int>>& rows,
-                  const std::vector<int>& labels, int feature_index);
-
 struct Node {
     bool is_leaf    = false;
     int  label      = -1;  // meaningful only when is_leaf == true
@@ -44,7 +40,7 @@ class Tree {
 
     // Train the tree on rows + labels.
     void fit(const std::vector<std::vector<int>>& rows,
-            const std::vector<int>& labels);
+            const std::vector<int>& labels, int split_criteria);
 
     // Predict the label for a single row.
     int predict(const std::vector<int>& row) const;
@@ -65,8 +61,8 @@ class Tree {
     // Recursive ID3 builder
     Node* build(const std::vector<std::vector<int>>& rows,
                 const std::vector<int>& labels,
-                std::vector<int> features_left,
-                int depth, int max_depth, int min_samples_split, int min_samples_leaf);
+                std::vector<int> features_left, int depth, int max_depth, 
+                int min_samples_split, int min_samples_leaf, int split_criteria);
     
     void prune(Node* node,
                const std::vector<std::vector<int>>& val_rows,

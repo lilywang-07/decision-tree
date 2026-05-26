@@ -77,8 +77,8 @@ int Tree::majority(const std::vector<int>& labels) {
 // Recursive ID3 builder
 Node* Tree::build(const std::vector<std::vector<int>>& rows,
                   const std::vector<int>& labels,
-                  std::vector<int> features_left, int depth,
-                  int max_depth, int min_samples_split, int min_samples_leaf) {
+                  std::vector<int> features_left, int depth,int max_depth, 
+                  int min_samples_split, int min_samples_leaf, int split_criteria) {
   Node* node = new Node();
   node->label = majority(labels); // default label
 
@@ -113,9 +113,17 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
   int best_feat = features_left[0];
   double best_gain = -1.0;
   for (int f : features_left) {
-      //double g = information_gain(rows, labels, f);
-      double g = gain_ratio(rows, labels, f);
-      if (g > best_gain) { best_gain = g; best_feat = f; }
+    // split criteria: 0 for information gain, 1 for gain ratio
+    double g;
+    if (split_criteria == 0) {
+        double g = information_gain(rows, labels, f);
+        if (g > best_gain) { best_gain = g; best_feat = f; }
+    }
+    else {
+        double g = gain_ratio(rows, labels, f);
+        if (g > best_gain) { best_gain = g; best_feat = f; }
+    }
+    if (g > best_gain) { best_gain = g; best_feat = f; }
   }
   node->feature_idx = best_feat;
 
@@ -150,14 +158,16 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
           sub_labels.push_back(labels[i]);
       }
 
-      node->children[val] = build(sub_rows, sub_labels, remaining, depth + 1, max_depth, min_samples_split, min_samples_leaf);
+      node->children[val] = build(sub_rows, sub_labels, remaining, depth + 1, max_depth, 
+        min_samples_split, min_samples_leaf, split_criteria);
   }
 
   return node;
 }
 
+// split criteria: 0 for information gain, 1 for gain ratio
 void Tree::fit(const std::vector<std::vector<int>>& rows,
-               const std::vector<int>& labels) {
+               const std::vector<int>& labels, int split_criteria) {
   delete root_;
   root_ = nullptr;
   if (rows.empty()) return;
@@ -167,7 +177,7 @@ void Tree::fit(const std::vector<std::vector<int>>& rows,
   for (int i = 0; i < static_cast<int>(all_features.size()); ++i)
       all_features[i] = i;
 
-  root_ = build(rows, labels, all_features, 0, 15, 3, 1);
+  root_ = build(rows, labels, all_features, 0, 15, 3, 1, split_criteria);
 }
 
 int Tree::predict(const std::vector<int>& row) const {

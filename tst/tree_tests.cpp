@@ -57,7 +57,7 @@ TEST(Tree, Builds) {
 
 TEST(Tree, FitAndPredict) {
     Tree tree;
-    tree.fit(tennis_rows, tennis_labels);
+    tree.fit(tennis_rows, tennis_labels, 0);
     int result = tree.predict(tennis_rows[0]);
     EXPECT_TRUE(result == 0 || result == 1);
 }
@@ -65,7 +65,7 @@ TEST(Tree, FitAndPredict) {
 TEST(Tree, PerfectTrainingAccuracy) {
     // ID3 with no pruning must memorize every training row.
     Tree tree;
-    tree.fit(tennis_rows, tennis_labels);
+    tree.fit(tennis_rows, tennis_labels, 0);
 
     int correct = 0;
     for (int i = 0; i < (int)tennis_rows.size(); ++i)
@@ -76,7 +76,7 @@ TEST(Tree, PerfectTrainingAccuracy) {
 
 TEST(Tree, PredictKnownRows) {
     Tree tree;
-    tree.fit(tennis_rows, tennis_labels);
+    tree.fit(tennis_rows, tennis_labels, 0);
 
     // Row 0: outlook=0,temp=0,humidity=0,wind=0 → label 0 (don't play)
     EXPECT_EQ(tree.predict({0, 0, 0, 0}), 0);
