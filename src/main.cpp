@@ -5,25 +5,57 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include <map>
+#include <set>
 
 using Data = std::pair<std::vector<std::vector<int>>, std::vector<int>>;
 
-Data load_tennis_data() {
-  const auto path = std::filesystem::path{"datasets"} / "tennis.csv";
+// loads a given csv file and returns a pair of (rows, targets)
+Data load_csv_data(const std::string& filename) {
+  const auto path = std::filesystem::path{"datasets"} / filename;
+  
+  std::ifstream file(path.string());
+  if (!file.is_open()) {
+    throw std::runtime_error("Could not open file: " + path.string());
+  }
 
-  io::CSVReader<5> in(path.string());
-  int outlook = 0;
-  int temperature = 0;
-  int humidity = 0;
-  int wind = 0;
-  int play = 0;
+  // Read header row to determine column count
+  std::string header_line;
+  std::getline(file, header_line);
+  
+  std::stringstream header_ss(header_line);
+  std::string col;
+  int num_cols = 0;
+  while (std::getline(header_ss, col, ',')) {
+    num_cols++;
+  }
+
+  // Last column is the target, rest are features
+  int num_features = num_cols - 1;
 
   std::vector<std::vector<int>> row_data;
   std::vector<int> target_data;
 
-  while (in.read_row(outlook, temperature, humidity, wind, play)) {
-    row_data.push_back({outlook, temperature, humidity, wind});
-    target_data.push_back(play);
+  std::string line;
+  while (std::getline(file, line)) {
+    if (line.empty()) continue;
+
+    std::stringstream ss(line);
+    std::string val;
+    std::vector<int> row;
+
+    while (std::getline(ss, val, ',')) {
+      row.push_back(std::stoi(val));
+    }
+
+    if ((int)row.size() != num_cols) {
+      throw std::runtime_error("Row has unexpected number of columns");
+    }
+
+    row_data.push_back(std::vector<int>(row.begin(), row.begin() + num_features));
+    target_data.push_back(row.back());
   }
 
   return {std::move(row_data), std::move(target_data)};
@@ -38,54 +70,66 @@ double accuracy(const std::vector<int>& truth, const std::vector<int>& pred) {
     return 100.0 * correct / static_cast<double>(truth.size());
 }
 
-// Binary confusion matrix (classes 0 and 1).
-//          Predicted 0   Predicted 1
-// Actual 0    TN            FP
-// Actual 1    FN            TP
 void print_confusion_matrix(const std::vector<int>& truth,
                             const std::vector<int>& pred) {
-    int tp = 0, tn = 0, fp = 0, fn = 0;
-    for (int i = 0; i < static_cast<int>(truth.size()); ++i) {
-        if      (truth[i] == 1 && pred[i] == 1) ++tp;
-        else if (truth[i] == 0 && pred[i] == 0) ++tn;
-        else if (truth[i] == 0 && pred[i] == 1) ++fp;
-        else                                     ++fn;
-    }
+    // Find all unique classes
+    std::set<int> class_set(truth.begin(), truth.end());
+    std::vector<int> classes(class_set.begin(), class_set.end());
+    int n = classes.size();
 
-    std::cout << "\nConfusion Matrix (actual rows × predicted cols):\n";
-    std::cout << "              Pred 0   Pred 1\n";
-    std::cout << "  Actual 0:     " << std::setw(3) << tn
-              << "      " << std::setw(3) << fp << "\n";
-    std::cout << "  Actual 1:     " << std::setw(3) << fn
-              << "      " << std::setw(3) << tp << "\n";
-    std::cout << "\n  TP=" << tp << "  TN=" << tn
-              << "  FP=" << fp << "  FN=" << fn << "\n";
+    // Map class value to index
+    std::map<int, int> idx;
+    for (int i = 0; i < n; ++i) idx[classes[i]] = i;
+
+    // Build matrix
+    std::vector<std::vector<int>> mat(n, std::vector<int>(n, 0));
+    for (int i = 0; i < (int)truth.size(); ++i)
+        mat[idx[truth[i]]][idx[pred[i]]]++;
+
+    // Print
+    std::cout << "\nConfusion Matrix (actual rows x predicted cols):\n";
+    std::cout << "       ";
+    for (int c : classes) std::cout << std::setw(4) << c;
+    std::cout << "\n";
+    for (int i = 0; i < n; ++i) {
+        std::cout << "  [" << classes[i] << "]  ";
+        for (int j = 0; j < n; ++j)
+            std::cout << std::setw(4) << mat[i][j];
+        std::cout << "\n";
+    }
 }
 
 // Main ------------------------------------------------------------------
 
 int main() {
-  // loads tennis data
-  const auto [rows, targets] = load_tennis_data();
+  // loads data
+  const auto [rows, targets] = load_csv_data("mushroom_fixed.csv");
   const int n_samples  = static_cast<int>(rows.size());
   std::cout << "\nLoaded rows/samples: " << n_samples
             << ", labels: " << targets.size() << '\n';
 
-  // train / test split — 70% train, 30% test
-  const int split = static_cast<int>(n_samples * 0.70 + 0.5);  // round
+  // train / test split — 60% train, 20% test, 20% validation
+  const int train_end = static_cast<int>(n_samples * 0.60 + 0.5);  // round
+  int val_end = static_cast<int>(n_samples * 0.80);
 
-  std::vector<std::vector<int>> train_rows (rows.begin(), rows.begin() + split);
-  std::vector<int> train_labels(targets.begin(), targets.begin() + split);
-  std::vector<std::vector<int>> test_rows (rows.begin() + split, rows.end());
-  std::vector<int> test_labels(targets.begin() + split, targets.end());
+  std::vector<std::vector<int>> train_rows (rows.begin(), rows.begin() + train_end);
+  std::vector<int> train_labels(targets.begin(), targets.begin() + train_end);
+  std::vector<std::vector<int>> val_rows   (rows.begin() + train_end, rows.begin() + val_end);
+  std::vector<int> val_labels (targets.begin() + train_end, targets.begin() + val_end);
+  std::vector<std::vector<int>> test_rows (rows.begin() + val_end,  rows.end());
+  std::vector<int> test_labels (targets.begin() + val_end, targets.end());
 
   std::cout << "Split: " << train_rows.size() << " train, "
+            << val_rows.size()   << " validation, "
             << test_rows.size()  << " test.\n";
 
   // fit, times how long it takes to build the tree
   Tree tree;
   auto t0 = std::chrono::high_resolution_clock::now();
-  tree.fit(train_rows, train_labels);
+
+  // CHANGE THIS LINE to switch between information gain and gain ratio split criteria
+  // split criteria: 0 for information gain, 1 for gain ratio
+  tree.fit(train_rows, train_labels, 0);
   auto t1 = std::chrono::high_resolution_clock::now();
   double train_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
 
@@ -94,6 +138,9 @@ int main() {
   for (const auto& row : train_rows)
       train_preds.push_back(tree.predict(row));
   double train_acc = accuracy(train_labels, train_preds);
+
+  // prune the tree using the validation set
+  tree.prune(val_rows, val_labels);
 
   // evaluate on test set
   std::vector<int> test_preds;
@@ -114,6 +161,13 @@ int main() {
 
   std::cout << "\n--- Test set ---";
   print_confusion_matrix(test_labels, test_preds);
+  int correct = 0;
+  for (int i = 0; i < (int)test_labels.size(); ++i)
+      correct += (test_labels[i] == test_preds[i]);
+
+  std::cout << "\nCorrect:   " << correct << " / " << test_labels.size() << "\n";
+  std::cout << "Incorrect: " << test_labels.size() - correct << " / " << test_labels.size() << "\n";
+  std::cout << "\n";
 
   return 0;
 }

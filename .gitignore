@@ -72,4 +72,6 @@ Testing/
 .DS_Store
 
 # Conan / CMake user-specific
-CMakeUserPresets.json
+CMakeUserPresets.jsonPERFORMANCE.md
+
+PERFORMANCE.md

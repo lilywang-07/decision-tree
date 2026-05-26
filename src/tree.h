@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <iostream>
 
 // Shannon entropy (in bits) of a label vector.
 // Returns 0 for empty or pure (single-class) input.
@@ -39,21 +40,33 @@ class Tree {
 
     // Train the tree on rows + labels.
     void fit(const std::vector<std::vector<int>>& rows,
-            const std::vector<int>& labels);
+            const std::vector<int>& labels, int split_criteria);
 
     // Predict the label for a single row.
     int predict(const std::vector<int>& row) const;
 
     // Predict labels for many rows.
     std::vector<int> predict(const std::vector<std::vector<int>>& rows) const;
+    
+    void prune(const std::vector<std::vector<int>>& val_rows,
+           const std::vector<int>& val_labels);
+
+    double accuracy(const std::vector<std::vector<int>>& val_rows,
+                    const std::vector<int>&              val_labels);
 
   private:
     Node* root_ = nullptr;
+    std::vector<int> train_labels_; // stored for pruning
 
     // Recursive ID3 builder
     Node* build(const std::vector<std::vector<int>>& rows,
-                const std::vector<int>&              labels,
-                std::vector<int>                     features_left);
+                const std::vector<int>& labels,
+                std::vector<int> features_left, int depth, int max_depth, 
+                int min_samples_split, int min_samples_leaf, int split_criteria);
+    
+    void prune(Node* node,
+               const std::vector<std::vector<int>>& val_rows,
+               const std::vector<int>& val_labels);
 
     // Majority-vote among labels (tie-break: smaller class wins).
     static int majority(const std::vector<int>& labels);
