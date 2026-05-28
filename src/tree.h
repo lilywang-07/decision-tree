@@ -61,6 +61,7 @@ class Tree {
     // Recursive ID3 builder
     Node* build(const std::vector<std::vector<int>>& rows,
                 const std::vector<int>& labels,
+                const std::vector<int>& indices,
                 std::vector<int> features_left, int depth, int max_depth, 
                 int min_samples_split, int min_samples_leaf, int split_criteria);
     

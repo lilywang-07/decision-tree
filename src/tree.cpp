@@ -2,6 +2,9 @@
 #include <cmath>
 #include <unordered_map>
 #include <algorithm>
+#include <numeric>
+
+static double split_time = 0.0;
 
 // entropy calculates the Shannon entropy (in bits) of a label vector.
 double entropy(const std::vector<int>& labels) {
@@ -77,23 +80,29 @@ int Tree::majority(const std::vector<int>& labels) {
 // Recursive ID3 builder
 Node* Tree::build(const std::vector<std::vector<int>>& rows,
                   const std::vector<int>& labels,
+                  const std::vector<int>& indices,
                   std::vector<int> features_left, int depth,int max_depth, 
                   int min_samples_split, int min_samples_leaf, int split_criteria) {
   Node* node = new Node();
   node->label = majority(labels); // default label
+  
+  // work on indices instead of copying rows
+  std::vector<int> sub_labels;
+  sub_labels.reserve(indices.size());
+  for (int i : indices) sub_labels.push_back(labels[i]);
 
   // Base case 1: all labels are the same -> pure leaf.
-  if (std::all_of(labels.begin(), labels.end(),
-                  [&](int l) { return l == labels[0]; })) {
+  if (std::all_of(sub_labels.begin(), sub_labels.end(),
+                  [&](int l) { return l == sub_labels[0]; })) {
       node->is_leaf = true;
-      node->label   = labels[0];
+      node->label   = sub_labels[0];
       return node;
   }
 
   // Base case 2: no features left -> majority-vote leaf.
   if (features_left.empty()) {
       node->is_leaf = true;
-      node->label   = majority(labels);
+      node->label   = majority(sub_labels);
       return node;
   }
 
@@ -104,28 +113,28 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
   }
 
   // Base case 4: not enough samples to split
-  if ((int)labels.size() < min_samples_split) {
+  if ((int)sub_labels.size() < min_samples_split) {
       node->is_leaf = true;
       return node;
   }
+
+  // timing the split decision
+  auto split_t0 = std::chrono::high_resolution_clock::now();
 
   // Pick the feature with the highest information gain
   int best_feat = features_left[0];
   double best_gain = -1.0;
   for (int f : features_left) {
     // split criteria: 0 for information gain, 1 for gain ratio
-    double g;
-    if (split_criteria == 0) {
-        double g = information_gain(rows, labels, f);
-        if (g > best_gain) { best_gain = g; best_feat = f; }
-    }
-    else {
-        double g = gain_ratio(rows, labels, f);
-        if (g > best_gain) { best_gain = g; best_feat = f; }
-    }
+    double g = (split_criteria == 0)
+      ? information_gain(rows, sub_labels, f)
+      : gain_ratio(rows, sub_labels, f);
     if (g > best_gain) { best_gain = g; best_feat = f; }
   }
   node->feature_idx = best_feat;
+
+  auto split_t1 = std::chrono::high_resolution_clock::now();
+  split_time += std::chrono::duration<double, std::milli>(split_t1 - split_t0).count();
 
   // Remove best_feat from the remaining feature list
   std::vector<int> remaining;
@@ -135,8 +144,8 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
 
   // Partition rows by their value for best_feat
   std::unordered_map<int, std::vector<int>> idx_by_val;
-  for (int i = 0; i < static_cast<int>(rows.size()); ++i)
-      idx_by_val[rows[i][best_feat]].push_back(i);
+  for (int i : indices)
+    idx_by_val[rows[i][best_feat]].push_back(i);
 
   // before recursing, check partitions aren't too small
   bool any_too_small = false;
@@ -148,18 +157,10 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
   }
 
   // Recurse on each partition.
-  for (const auto& [val, indices] : idx_by_val) {
-      std::vector<std::vector<int>> sub_rows;
-      std::vector<int>              sub_labels;
-      sub_rows.reserve(indices.size());
-      sub_labels.reserve(indices.size());
-      for (int i : indices) {
-          sub_rows.push_back(rows[i]);
-          sub_labels.push_back(labels[i]);
-      }
-
-      node->children[val] = build(sub_rows, sub_labels, remaining, depth + 1, max_depth, 
-        min_samples_split, min_samples_leaf, split_criteria);
+  for (const auto& [val, child_indices] : idx_by_val) {
+    node->children[val] = build(rows, labels, child_indices,
+                                remaining, depth + 1,
+                                max_depth, min_samples_split, min_samples_leaf, split_criteria);
   }
 
   return node;
@@ -173,11 +174,17 @@ void Tree::fit(const std::vector<std::vector<int>>& rows,
   if (rows.empty()) return;
 
   // All feature indices: 0 … num_features-1
-  std::vector<int> all_features(rows[0].size());
-  for (int i = 0; i < static_cast<int>(all_features.size()); ++i)
-      all_features[i] = i;
+  std::vector<int> all_indices(rows.size());
+  std::iota(all_indices.begin(), all_indices.end(), 0);
 
-  root_ = build(rows, labels, all_features, 0, 15, 3, 1, split_criteria);
+  // initialize the list of features left to split on
+  std::vector<int> all_features(rows[0].size());
+  for (int i = 0; i < (int)all_features.size(); ++i)
+    all_features[i] = i;
+
+  root_ = build(rows, labels, all_indices, all_features, 0, 10, 5, 2, 1);
+
+  std::cout << "Split-finding time: " << split_time << " ms\n";
 }
 
 int Tree::predict(const std::vector<int>& row) const {
