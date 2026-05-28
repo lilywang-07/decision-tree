@@ -114,15 +114,9 @@ Node* Tree::build(const std::vector<std::vector<int>>& rows,
   double best_gain = -1.0;
   for (int f : features_left) {
     // split criteria: 0 for information gain, 1 for gain ratio
-    double g;
-    if (split_criteria == 0) {
-        double g = information_gain(rows, labels, f);
-        if (g > best_gain) { best_gain = g; best_feat = f; }
-    }
-    else {
-        double g = gain_ratio(rows, labels, f);
-        if (g > best_gain) { best_gain = g; best_feat = f; }
-    }
+    double g = (split_criteria == 0)
+      ? information_gain(rows, labels, f)
+      : gain_ratio(rows, labels, f);
     if (g > best_gain) { best_gain = g; best_feat = f; }
   }
   node->feature_idx = best_feat;
