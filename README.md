@@ -18,17 +18,16 @@ cmake --build build
 ## Results
 | Dataset | Rows | Test Accuracy | Training Time |
 |---|---|---|---|
-| Tennis | 14 | 100% | <1ms |
-| Zoo | 101 | 76.7% | <1ms |
-| Car Evaluation | 1728 | 66.8% | ~0.8788 ms |
-| Mushroom | 8124 | 97.0% | ~3.4322 ms |
+| Zoo | 101 | 81.0% | <0.5ms |
+| Car Evaluation | 1728 | 90.5% | ~1.2919 ms |
+| Mushroom | 8124 | 99.9% | ~2.6919 ms |
 
 ## Benchmark vs scikit-learn
 | Dataset | Metric | This C++ ID3 | scikit-learn Decision Tree | scikit-learn Random Forest |
 |---|---|---|---|---|
-| Mushroom | Test accuracy | 97.0% | ~79.575% | 79.6% |
-| Mushroom | Training time | ~3.4322 ms | ~2.402 ms | ~74.428 ms |
-| Car Evaluation | Test accuracy | 66.8% | 63.9% | 63.9% |
-| Car Evaluation | Training time | ~0.8788 ms | ~1.2742 ms | ~42.015 ms |
+| Mushroom | Test accuracy | 99.9% | ~79.575% | 79.6% |
+| Mushroom | Training time | ~2.6919 ms | ~2.402 ms | ~74.428 ms |
+| Car Evaluation | Test accuracy | 90.5% | 63.9% | 63.9% |
+| Car Evaluation | Training time | ~1.2919 ms | ~1.2742 ms | ~42.015 ms |
 
 Same 60/20/20 train/validation/test split, information gain criterion. Averaged on 4 trials each.

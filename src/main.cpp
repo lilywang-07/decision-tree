@@ -9,6 +9,9 @@
 #include <sstream>
 #include <map>
 #include <set>
+#include <algorithm>
+#include <numeric>
+#include <random>
 
 using Data = std::pair<std::vector<std::vector<int>>, std::vector<int>>;
 
@@ -87,8 +90,22 @@ void print_confusion_matrix(const std::vector<int>& truth,
 int main(int argc, char* argv[]) {
   // loads data
   const std::string csv_path = (argc > 1) ? argv[1] : "datasets/mushroom_fixed.csv";
-  const auto [rows, targets] = load_csv_data(csv_path);
-  const int n_samples  = static_cast<int>(rows.size());
+
+  const auto [rows_raw, targets_raw] = load_csv_data(csv_path);
+  const int n_samples = static_cast<int>(rows_raw.size());
+
+  std::vector<int> indices(n_samples);
+  std::iota(indices.begin(), indices.end(), 0);
+  std::mt19937 rng(42);
+  std::shuffle(indices.begin(), indices.end(), rng);
+
+  std::vector<std::vector<int>> rows(n_samples);
+  std::vector<int> targets(n_samples);
+  for (int i = 0; i < n_samples; ++i) {
+      rows[i]    = rows_raw[indices[i]];
+      targets[i] = targets_raw[indices[i]];
+  }
+
   std::cout << "\nLoaded rows/samples: " << n_samples
             << ", labels: " << targets.size() << '\n';
 
