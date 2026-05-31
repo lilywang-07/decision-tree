@@ -25,9 +25,9 @@ cmake --build build
 ## Benchmark vs scikit-learn
 | Dataset | Metric | This C++ ID3 | scikit-learn Decision Tree | scikit-learn Random Forest |
 |---|---|---|---|---|
-| Mushroom | Test accuracy | 99.9% | ~79.575% | 79.6% |
-| Mushroom | Training time | ~2.6919 ms | ~2.402 ms | ~74.428 ms |
-| Car Evaluation | Test accuracy | 90.5% | 63.9% | 63.9% |
-| Car Evaluation | Training time | ~1.2919 ms | ~1.2742 ms | ~42.015 ms |
+| Mushroom | Test accuracy | 99.9% | 100.0% | 100.0% |
+| Mushroom | Training time | ~2.6919 ms | ~3.3041 ms | ~87.050 ms |
+| Car Evaluation | Test accuracy | 90.5% | ~96.675% | 97.3% |
+| Car Evaluation | Training time | ~1.2919 ms | ~0.9291 ms | ~47.008 ms |
 
 Same 60/20/20 train/validation/test split, information gain criterion. Averaged on 4 trials each.
