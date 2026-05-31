@@ -14,31 +14,18 @@ using Data = std::pair<std::vector<std::vector<int>>, std::vector<int>>;
 
 // loads a given csv file and returns a pair of (rows, targets)
 Data load_csv_data(const std::string& filename) {
-  const auto path = std::filesystem::path{"datasets"} / filename;
+  const auto path = std::filesystem::path{filename};
   
   std::ifstream file(path.string());
   if (!file.is_open()) {
     throw std::runtime_error("Could not open file: " + path.string());
   }
 
-  // Read header row to determine column count
-  std::string header_line;
-  std::getline(file, header_line);
-  
-  std::stringstream header_ss(header_line);
-  std::string col;
-  int num_cols = 0;
-  while (std::getline(header_ss, col, ',')) {
-    num_cols++;
-  }
-
-  // Last column is the target, rest are features
-  int num_features = num_cols - 1;
-
   std::vector<std::vector<int>> row_data;
   std::vector<int> target_data;
 
   std::string line;
+  
   while (std::getline(file, line)) {
     if (line.empty()) continue;
 
@@ -50,11 +37,7 @@ Data load_csv_data(const std::string& filename) {
       row.push_back(std::stoi(val));
     }
 
-    if ((int)row.size() != num_cols) {
-      throw std::runtime_error("Row has unexpected number of columns");
-    }
-
-    row_data.push_back(std::vector<int>(row.begin(), row.begin() + num_features));
+    row_data.push_back(std::vector<int>(row.begin(), row.end() - 1));
     target_data.push_back(row.back());
   }
 
@@ -101,9 +84,10 @@ void print_confusion_matrix(const std::vector<int>& truth,
 
 // Main ------------------------------------------------------------------
 
-int main() {
+int main(int argc, char* argv[]) {
   // loads data
-  const auto [rows, targets] = load_csv_data("mushroom_fixed.csv");
+  const std::string csv_path = (argc > 1) ? argv[1] : "datasets/mushroom_fixed.csv";
+  const auto [rows, targets] = load_csv_data(csv_path);
   const int n_samples  = static_cast<int>(rows.size());
   std::cout << "\nLoaded rows/samples: " << n_samples
             << ", labels: " << targets.size() << '\n';
